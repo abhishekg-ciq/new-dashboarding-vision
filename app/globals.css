@@ -1,0 +1,224 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@300;400;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Neutral / gray scale */
+  --gray-50:  rgb(249, 250, 251);
+  --gray-100: rgb(243, 244, 246);
+  --gray-200: rgb(229, 231, 235);
+  --gray-300: rgb(209, 213, 219);
+  --gray-400: rgb(156, 163, 175);
+  --gray-500: rgb(107, 114, 128);
+  --gray-600: rgb(75,  85,  99);
+  --gray-700: rgb(55,  65,  81);
+  --gray-800: rgb(31,  41,  55);
+  --gray-900: rgb(17,  24,  39);
+  --gray-950: rgb(3,   7,   18);
+
+  /* Primary (violet) */
+  --violet-50:  rgb(245, 243, 255);
+  --violet-100: rgb(237, 233, 254);
+  --violet-200: rgb(221, 214, 254);
+  --violet-300: rgb(196, 181, 253);
+  --violet-400: rgb(167, 139, 250);
+  --violet-500: rgb(151, 71,  255);
+  --violet-600: rgb(124, 58,  237);
+  --violet-700: rgb(109, 40,  217);
+  --violet-800: rgb(91,  33,  182);
+  --violet-900: rgb(76,  29,  149);
+  --purple-500: rgb(168, 85,  247);
+
+  /* Semantic */
+  --red-50:   rgb(254, 242, 242);
+  --red-500:  rgb(239, 68,  68);
+  --red-600:  rgb(220, 38,  38);
+  --red-700:  rgb(185, 28,  28);
+  --emerald-50:  rgb(236, 253, 245);
+  --emerald-500: rgb(16,  185, 129);
+  --emerald-600: rgb(5,   150, 105);
+  --amber-50:   rgb(255, 251, 235);
+  --amber-500:  rgb(245, 158, 11);
+  --amber-600:  rgb(217, 119, 6);
+  --sky-500:   rgb(51,  138, 243);
+
+  /* Aliases (light) */
+  --bg:            #ffffff;
+  --bg-muted:      var(--gray-100);
+  --bg-subtle:     var(--gray-50);
+  --fg:            var(--gray-950);
+  --fg-muted:      var(--gray-500);
+  --fg-subtle:     var(--gray-400);
+  --border:        var(--gray-200);
+  --border-strong: var(--gray-300);
+  --primary:       var(--violet-600);
+  --primary-hover: var(--violet-500);
+  --primary-fg:    var(--gray-50);
+  --ring:          var(--violet-600);
+
+  /* Legacy CIQ aliases (kept for backwards compatibility) */
+  --ciq-purple: var(--violet-700);
+  --ciq-accent: var(--violet-600);
+  --ciq-sky:    var(--sky-500);
+  --ciq-cobalt: var(--violet-800);
+  --ciq-bg:     var(--bg);
+  --ciq-bg-soft: var(--bg-subtle);
+  --ciq-border: var(--border);
+  --ciq-ink:    var(--fg);
+  --ciq-ink-soft: var(--fg-muted);
+
+  /* Radii */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.10), 0 1px 2px -1px rgba(0,0,0,0.10);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.10), 0 2px 4px -2px rgba(0,0,0,0.10);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-eyebrow: 'Inconsolata', ui-monospace, monospace;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04";
+}
+
+* {
+  border-color: var(--border);
+}
+
+@layer components {
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xs);
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors;
+    border: 1px solid transparent;
+  }
+  .btn-primary {
+    background: var(--violet-600);
+    color: white;
+    font-weight: 700;
+  }
+  .btn-primary:hover {
+    background: var(--violet-500);
+  }
+  .btn-ghost {
+    background: var(--bg);
+    color: var(--fg);
+    border-color: var(--border);
+  }
+  .btn-ghost:hover {
+    background: var(--gray-50);
+  }
+  .btn-subtle {
+    background: var(--gray-100);
+    color: var(--gray-900);
+  }
+  .btn-subtle:hover {
+    background: var(--gray-200);
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border bg-white px-2.5 py-1 text-xs transition;
+    color: var(--fg);
+    border-color: var(--border);
+  }
+  .chip:hover {
+    background: var(--gray-50);
+  }
+  .label-xs {
+    @apply text-[11px] tracking-wider;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+  }
+  .eyebrow {
+    font-family: var(--font-eyebrow);
+    font-weight: 300;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 0.05em;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+  }
+  .kbd {
+    @apply rounded border bg-white px-1.5 py-0.5 text-[10px];
+    color: var(--fg-muted);
+  }
+  .ally-claim {
+    border: 1px solid var(--border);
+    background: var(--violet-50);
+    color: var(--fg);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .input {
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    color: var(--fg);
+    background: var(--bg);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 25%, transparent);
+  }
+  .tag-l0 { background: var(--gray-900); color: white; }
+  .tag-l1 { background: var(--violet-700); color: white; }
+  .tag-l2 { background: var(--sky-500); color: white; }
+  .tag-l3 { background: var(--violet-600); color: white; }
+  .tag-l0, .tag-l1, .tag-l2, .tag-l3, .tag-frontier { @apply rounded px-1.5 py-0.5 text-[10px] font-semibold; }
+  .tag-frontier { background: var(--amber-500); color: white; }
+}
+
+.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 8px; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+
+/* Toggle (iOS-style switch) */
+.toggle {
+  --w: 36px;
+  --h: 20px;
+  position: relative;
+  display: inline-block;
+  width: var(--w);
+  height: var(--h);
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle .slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: var(--gray-300);
+  border-radius: 9999px;
+  transition: background .15s ease;
+}
+.toggle .slider::before {
+  content: ""; position: absolute;
+  width: 16px; height: 16px;
+  left: 2px; top: 2px;
+  background: white; border-radius: 9999px;
+  transition: transform .15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.toggle input:checked + .slider { background: var(--violet-600); }
+.toggle input:checked + .slider::before { transform: translateX(16px); }
