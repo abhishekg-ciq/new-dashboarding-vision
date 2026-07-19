@@ -3,9 +3,11 @@ import { resolveIntent, describeIntent } from "@/lib/semantic/intent";
 import { compute } from "@/lib/semantic/compute";
 import { buildSystemPrompt } from "@/lib/ally/systemPrompt";
 import { scriptedReply, frontierReply } from "@/lib/ally/fallback";
+import { matchGolden } from "@/lib/ally/golden";
 import { newBalanceSkill } from "@/lib/skills/newbalance";
 import { nestleSkill } from "@/lib/skills/nestle";
 import type { SkillFile } from "@/lib/skills/types";
+import type { SemanticIntent } from "@/lib/semantic/types";
 
 const defaultSkills: Record<string, SkillFile> = {
   "new-balance": newBalanceSkill,
@@ -18,6 +20,7 @@ type Body = {
   skill?: SkillFile;
   frontierHypothesis?: string;
   knowledge?: string[];
+  lastIntent?: SemanticIntent;
 };
 
 export async function POST(req: NextRequest) {
@@ -36,6 +39,55 @@ export async function POST(req: NextRequest) {
   if (body.frontierHypothesis) {
     const f = frontierReply(body.frontierHypothesis);
     return NextResponse.json({ ...f, frontierFlag: true });
+  }
+
+  // Golden-set short-circuit (Chat_Dashboarding_Golden_Set_v1) — scripted answers for
+  // specific demo utterances, ahead of the generic single-metric resolver below.
+  const golden = matchGolden(body.question, { clientId, skill, lastIntent: body.lastIntent });
+  if (golden) {
+    const placeholderIntent: SemanticIntent = body.lastIntent || { metricId: skill.primaryMetric, dimensionIds: [], filters: {}, timeframe: "trailing-13w", comparison: skill.comparison };
+    const placeholderResult = compute(placeholderIntent, clientId);
+    if (golden.kind === "widgets") {
+      const first = golden.widgets[0];
+      return NextResponse.json({
+        reply: golden.reply,
+        resolvedIntent: first?.intent ?? placeholderIntent,
+        intentLabel: first?.title ?? "Golden-set answer",
+        result: first?.result ?? placeholderResult,
+        widgets: golden.widgets,
+        dashboardDraft: golden.dashboardDraft,
+        source: "golden-set",
+      });
+    }
+    if (golden.kind === "evidence") {
+      return NextResponse.json({
+        reply: golden.reply,
+        resolvedIntent: placeholderIntent,
+        intentLabel: "Diagnostic evidence",
+        result: placeholderResult,
+        evidenceCards: golden.cards,
+        source: "golden-set",
+      });
+    }
+    if (golden.kind === "clarify") {
+      return NextResponse.json({
+        reply: golden.reply,
+        resolvedIntent: placeholderIntent,
+        intentLabel: "Clarify",
+        result: placeholderResult,
+        clarifyQuestions: golden.questions,
+        source: "golden-set",
+      });
+    }
+    // guardrail
+    return NextResponse.json({
+      reply: golden.reply,
+      resolvedIntent: placeholderIntent,
+      intentLabel: "Guardrail",
+      result: placeholderResult,
+      guardrail: { message: golden.reply, alternative: golden.alternative },
+      source: "golden-set",
+    });
   }
 
   // Resolve intent + compute deterministically

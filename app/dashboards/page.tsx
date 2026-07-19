@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { prebuiltDashboards } from "@/lib/dashboards/prebuilt";
-import { useClient, useDashboards, usePersona } from "@/lib/state/store";
+import { forClient, useAuthoredDashboards, useClient, useDashboards, usePersona } from "@/lib/state/store";
 
 type CardKind = "prebuilt" | "personal";
 
@@ -11,7 +11,19 @@ export default function DashboardsIndex() {
   const [client] = useClient();
   const [persona] = usePersona();
   const router = useRouter();
-  const prebuilt = prebuiltDashboards[client] || [];
+  const { list: authoredAll } = useAuthoredDashboards();
+  const authored = forClient(authoredAll, client);
+  const prebuilt = [
+    ...(prebuiltDashboards[client] || []),
+    ...authored.map((a) => ({
+      id: a.id,
+      name: a.name,
+      description: a.description,
+      status: "functional" as const,
+      category: "standard" as const,
+      widgets: a.widgets,
+    })),
+  ];
   const { list: pinned, upsert, remove } = useDashboards(client);
 
   const [createOpen, setCreateOpen] = useState(false);

@@ -19,6 +19,7 @@ const builderNav = [
   { href: "/builder/semantic", label: "Semantic / Context" },
   { href: "/builder/skills", label: "Skills" },
   { href: "/builder/workflows", label: "Workflows" },
+  { href: "/builder/authoring", label: "Dashboard Authoring" },
 ];
 
 const PERSONAS: { id: Persona; label: string; sub: string }[] = [

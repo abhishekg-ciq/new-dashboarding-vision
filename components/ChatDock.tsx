@@ -2,7 +2,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { askAlly } from "@/lib/ally/client";
-import { useClient, useSkill } from "@/lib/state/store";
+import { computeGrain, defaultGlobalDims } from "@/lib/dashboards/grain";
+import { seedAuthoringDraft } from "@/lib/dashboards/authoringDraft";
+import { useClient, usePersona, useSkill } from "@/lib/state/store";
 import AllyMessage, { AllyAnswer } from "./AllyMessage";
 import SuggestedPrompts from "./SuggestedPrompts";
 import ChatInput from "./ChatInput";
@@ -26,6 +28,7 @@ export default function ChatDock({
   seed?: ChatDockSeed | null;
 }) {
   const [client] = useClient();
+  const [persona] = usePersona();
   const { skill } = useSkill(client);
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -41,7 +44,8 @@ export default function ChatDock({
       setLoading(true);
       setError(null);
       try {
-        const res = await askAlly({ question, clientId: client, skill });
+        const lastIntent = answer?.widgets?.[answer.widgets.length - 1]?.intent ?? answer?.intent;
+        const res = await askAlly({ question, clientId: client, skill, lastIntent });
         setAnswer({
           id: `dock-${Date.now()}`,
           question,
@@ -52,6 +56,11 @@ export default function ChatDock({
           proposedBranch: res.proposedBranch,
           frontierFlag: res.frontierFlag,
           source: res.source,
+          widgets: res.widgets ?? [{ title: res.intentLabel, intent: res.resolvedIntent, result: res.result }],
+          evidenceCards: res.evidenceCards,
+          clarifyQuestions: res.clarifyQuestions,
+          guardrail: res.guardrail,
+          dashboardDraft: res.dashboardDraft,
         });
         setQ("");
       } catch (e) {
@@ -60,7 +69,7 @@ export default function ChatDock({
         setLoading(false);
       }
     },
-    [client, skill],
+    [client, skill, answer],
   );
 
   // Apply seed on open. If the seed carries a question, auto-ask it once.
@@ -150,6 +159,28 @@ export default function ChatDock({
                       router.push(`/workflows/rca/${id}`);
                       onClose();
                     }}
+                    onOpenAuthoring={
+                      persona === "fde" && answer.dashboardDraft
+                        ? () => {
+                            const narrow = (t: string) => (t === "line" || t === "bar" || t === "table" || t === "kpi" ? t : undefined);
+                            const ws = answer.widgets ?? [{ title: answer.intentLabel, intent: answer.intent, result: answer.result }];
+                            const widgets = ws.map((w, i) => ({
+                              id: `authored-w-${Date.now()}-${i}`,
+                              title: w.title,
+                              intent: w.intent,
+                              vizType: narrow(w.result.chartSpec.type) as "line" | "bar" | "table" | "kpi" | undefined,
+                            }));
+                            seedAuthoringDraft({
+                              name: answer.intentLabel || "New dashboard",
+                              widgets,
+                              edits: {},
+                              globalDims: defaultGlobalDims(computeGrain(widgets.map((w) => w.intent))),
+                            });
+                            router.push("/builder/authoring");
+                            onClose();
+                          }
+                        : undefined
+                    }
                   />
                 </div>
               </div>
