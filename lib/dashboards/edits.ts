@@ -26,6 +26,10 @@ export type ExtraWidget = {
   intent: SemanticIntent;
   size?: "sm" | "md" | "lg";
   vizType?: "line" | "bar" | "table" | "kpi";
+  /** Extra metrics beyond the primary, rendered as overlay KPI chips. */
+  addedMetricIds?: string[];
+  /** Contextual hint for Ally insights panel (e.g. filter_hint from card library). */
+  insightContext?: string;
 };
 
 export type DashboardEdit = {
@@ -129,8 +133,17 @@ export function useDashboardDraft(client: string, dashId: string) {
 
   const addWidget = useCallback((w: ExtraWidget) => {
     setDraft((d) => {
-      const widgetOverrides = w.vizType
-        ? { ...d.widgets, [w.id]: { ...(d.widgets[w.id] || {}), vizType: w.vizType } }
+      const hasOverrides = w.vizType || w.addedMetricIds?.length || w.insightContext;
+      const widgetOverrides = hasOverrides
+        ? {
+            ...d.widgets,
+            [w.id]: {
+              ...(d.widgets[w.id] || {}),
+              ...(w.vizType ? { vizType: w.vizType } : {}),
+              ...(w.addedMetricIds?.length ? { addedMetricIds: w.addedMetricIds } : {}),
+              ...(w.insightContext ? { insightContext: w.insightContext } : {}),
+            },
+          }
         : d.widgets;
       return { ...d, addedWidgets: [...(d.addedWidgets || []), w], widgets: widgetOverrides };
     });
