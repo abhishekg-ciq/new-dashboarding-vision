@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { newBalanceSkill } from "@/lib/skills/newbalance";
 import { nestleSkill } from "@/lib/skills/nestle";
 import type { SkillFile } from "@/lib/skills/types";
+import type { PrebuiltWidget } from "@/lib/dashboards/prebuilt";
 
 const NS = "ally.v1";
 const k = (key: string) => `${NS}.${key}`;
@@ -157,6 +158,49 @@ export function useDashboards(clientId: string) {
     [key],
   );
   return { list, upsert, remove };
+}
+
+/** FDE-authored, from-blank dashboard/template (US-4/5/6). Client-agnostic; scoped by `targetClients`. */
+export type AuthoredDashboard = {
+  id: string;
+  name: string;
+  description: string;
+  kind: "dashboard" | "template";
+  widgets: PrebuiltWidget[];
+  /** Conformed dims the FDE selected as the global filter set (US-5). */
+  globalFilterDims: string[];
+  /** Publish target: "all" clients, or an explicit list of client ids (US-6). */
+  targetClients: string[] | "all";
+  createdAt: number;
+};
+
+export function useAuthoredDashboards() {
+  const key = "authored.dashboards";
+  const [list, setList] = useState<AuthoredDashboard[]>([]);
+  useEffect(() => {
+    setList(read<AuthoredDashboard[]>(key, []));
+    const h = () => setList(read<AuthoredDashboard[]>(key, []));
+    window.addEventListener(`ally:${key}`, h);
+    return () => window.removeEventListener(`ally:${key}`, h);
+  }, []);
+  const upsert = useCallback((d: AuthoredDashboard) => {
+    const all = read<AuthoredDashboard[]>(key, []);
+    const i = all.findIndex((x) => x.id === d.id);
+    if (i >= 0) all[i] = d;
+    else all.push(d);
+    write(key, all);
+    setList(all);
+  }, []);
+  const remove = useCallback((id: string) => {
+    const all = read<AuthoredDashboard[]>(key, []).filter((d) => d.id !== id);
+    write(key, all);
+    setList(all);
+  }, []);
+  return { list, upsert, remove };
+}
+
+export function forClient(entries: AuthoredDashboard[], clientId: string): AuthoredDashboard[] {
+  return entries.filter((e) => e.targetClients === "all" || e.targetClients.includes(clientId));
 }
 
 export function useGoldenQueries(clientId: string) {

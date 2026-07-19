@@ -5,15 +5,19 @@ import AllyMessage, { AllyAnswer } from "@/components/AllyMessage";
 import SuggestedPrompts from "@/components/SuggestedPrompts";
 import ChatInput from "@/components/ChatInput";
 import { askAlly } from "@/lib/ally/client";
+import { computeGrain, defaultGlobalDims } from "@/lib/dashboards/grain";
+import { seedAuthoringDraft } from "@/lib/dashboards/authoringDraft";
 import {
   useClient,
   useDashboards,
   useGoldenQueries,
+  usePersona,
   useSkill,
 } from "@/lib/state/store";
 
 export default function ChatPage() {
   const [client] = useClient();
+  const [persona] = usePersona();
   const { skill } = useSkill(client);
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -33,7 +37,9 @@ export default function ChatPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await askAlly({ question, clientId: client, skill });
+        const last = answers[answers.length - 1];
+        const lastIntent = last?.widgets?.[last.widgets.length - 1]?.intent ?? last?.intent;
+        const res = await askAlly({ question, clientId: client, skill, lastIntent });
         const ans: AllyAnswer = {
           id: `a-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           question,
@@ -44,6 +50,11 @@ export default function ChatPage() {
           proposedBranch: res.proposedBranch,
           frontierFlag: res.frontierFlag,
           source: res.source,
+          widgets: res.widgets ?? [{ title: res.intentLabel, intent: res.resolvedIntent, result: res.result }],
+          evidenceCards: res.evidenceCards,
+          clarifyQuestions: res.clarifyQuestions,
+          guardrail: res.guardrail,
+          dashboardDraft: res.dashboardDraft,
         };
         setAnswers((prev) => [...prev, ans]);
         setQ("");
@@ -53,7 +64,7 @@ export default function ChatPage() {
         setLoading(false);
       }
     },
-    [client, skill],
+    [client, skill, answers],
   );
 
   useEffect(() => setAnswers([]), [client]);
@@ -81,6 +92,8 @@ export default function ChatPage() {
     });
   };
 
+  const answerWidgets = (a: AllyAnswer) => a.widgets ?? [{ title: a.intentLabel, intent: a.intent, result: a.result }];
+
   const pin = (a: AllyAnswer) => {
     const id = `db-${client}-pins`;
     const existing = dashboards.list.find((d) => d.id === id) || {
@@ -90,13 +103,15 @@ export default function ChatPage() {
       widgets: [],
       prebuilt: false,
     };
-    existing.widgets.push({
-      id: `w-${Date.now()}`,
-      title: a.intentLabel,
-      intent: a.intent,
-      chartType: a.result.chartSpec.type,
-      size: "md",
-      source: "chat",
+    answerWidgets(a).forEach((w, i) => {
+      existing.widgets.push({
+        id: `w-${Date.now()}-${i}`,
+        title: w.title,
+        intent: w.intent,
+        chartType: w.result.chartSpec.type,
+        size: "md",
+        source: "chat",
+      });
     });
     dashboards.upsert(existing);
     alert("Pinned to dashboard “Pinned from Chat”");
@@ -104,40 +119,53 @@ export default function ChatPage() {
 
   const saveAsNewDashboard = (a: AllyAnswer) => {
     const id = `personal-${client}-${Date.now()}`;
+    const ws = answerWidgets(a);
     dashboards.upsert({
       id,
       clientId: client,
       name: a.intentLabel || "New dashboard",
       description: `Generated from chat · "${a.question}"`,
-      widgets: [
-        {
-          id: `${id}-w0`,
-          title: a.intentLabel,
-          intent: a.intent,
-          chartType: a.result.chartSpec.type,
-          size: "md",
-          source: "chat",
-        },
-      ],
+      widgets: ws.map((w, i) => ({
+        id: `${id}-w${i}`,
+        title: w.title,
+        intent: w.intent,
+        chartType: w.result.chartSpec.type,
+        size: i === 0 && ws.length > 1 ? "lg" : "md",
+        source: "chat",
+      })),
       prebuilt: false,
     });
     router.push(`/dashboards/${id}`);
+  };
+
+  const openAuthoring = (a: AllyAnswer) => {
+    const ws = answerWidgets(a);
+    const narrow = (t: string) => (t === "line" || t === "bar" || t === "table" || t === "kpi" ? t : undefined);
+    const widgets = ws.map((w, i) => ({ id: `authored-w-${Date.now()}-${i}`, title: w.title, intent: w.intent, vizType: narrow(w.result.chartSpec.type) as "line" | "bar" | "table" | "kpi" | undefined }));
+    seedAuthoringDraft({
+      name: a.intentLabel || "New dashboard",
+      widgets,
+      edits: {},
+      globalDims: defaultGlobalDims(computeGrain(widgets.map((w) => w.intent))),
+    });
+    router.push("/builder/authoring");
   };
 
   const buildDashboardFromSelection = () => {
     if (selected.size < 1) return;
     const id = `personal-${client}-${Date.now()}`;
     const picked = answers.filter((a) => selected.has(a.id));
+    const flatWidgets = picked.flatMap((a) => answerWidgets(a));
     dashboards.upsert({
       id,
       clientId: client,
       name: `Chat-built · ${new Date().toLocaleDateString()}`,
       description: `Generated from ${picked.length} answer(s) in Ask Ally.`,
-      widgets: picked.map((a, i) => ({
+      widgets: flatWidgets.map((w, i) => ({
         id: `${id}-w${i}`,
-        title: a.intentLabel,
-        intent: a.intent,
-        chartType: a.result.chartSpec.type,
+        title: w.title,
+        intent: w.intent,
+        chartType: w.result.chartSpec.type,
         size: i === 0 ? "lg" : "md",
         source: "chat",
       })),
@@ -288,6 +316,7 @@ export default function ChatPage() {
                     onSave={() => save(a)}
                     onSaveAsDashboard={() => saveAsNewDashboard(a)}
                     onGoDeeper={() => goDeeper(a)}
+                    onOpenAuthoring={persona === "fde" && a.dashboardDraft ? () => openAuthoring(a) : undefined}
                   />
                 </div>
               </div>

@@ -10,16 +10,6 @@ type WidgetLike = {
   intent: SemanticIntent;
 };
 
-// ─── Data sources ────────────────────────────────────────────────────────────
-const DATA_SOURCES = [
-  { id: "sales_1p",      label: "Sales Data (1P — Vendor Central)" },
-  { id: "ad_data",       label: "Ad Spend Data (DSP / SP / SB)" },
-  { id: "sov_data",      label: "Organic SOV Data" },
-  { id: "paid_sov",      label: "Paid SOV Data" },
-  { id: "content_data",  label: "Content & Digital Shelf" },
-  { id: "inventory",     label: "Inventory & Availability" },
-];
-
 // ─── Viz catalogue ────────────────────────────────────────────────────────────
 type VizId = "line" | "bar" | "table" | "kpi";
 
@@ -289,19 +279,7 @@ export default function AdvancedEditDrawer({
                 />
               </Field>
 
-              {/* 2. Data source */}
-              <Field label="Data source">
-                <select
-                  defaultValue={primaryMetric?.backendName || "sales_1p"}
-                  className="input w-full"
-                >
-                  {DATA_SOURCES.map((ds) => (
-                    <option key={ds.id} value={ds.id}>{ds.label}</option>
-                  ))}
-                </select>
-              </Field>
-
-              {/* 3. Primary visualization (rich picker) */}
+              {/* 2. Primary visualization (rich picker) */}
               <Field label="Visualization">
                 <div ref={vizRef} className="relative">
                   <button
